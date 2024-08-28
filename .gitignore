@@ -1,12 +1,5 @@
-# Ignore Python bytecode and cache files
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-*.pyc
-*.pdb
+# Ignore __pycache__ directories
+**/__pycache__/
 
-# Ignore environment-specific files
-*.env
-*.venv
-*.virtualenv
+# Ignore Python bytecode files
+*.py[cod]
