@@ -1,5 +1,6 @@
 import pandas as pd
 import io
+
 def read_file(file):
     content = file.file.read()
     if file.filename.endswith('.csv'):
@@ -10,6 +11,9 @@ def read_file(file):
         # Todo log this in json file
         raise ValueError(f"Unsupported file format: {file.filename}")
 
-def preprocess_dataframe(df):
-    df.columns = df.columns.str.title().str.replace(' ', '')
-    return df.map(lambda x: x.strip() if isinstance(x, str) else x)
+def preprocess_dataframe(df:pd.DataFrame) -> pd.DataFrame:
+    try:
+        df.columns = df.columns.str.title().str.replace(' ', '')
+        return df.map(lambda x: x.strip() if isinstance(x, str) else x)
+    except Exception as e:
+        raise ValueError(f"Cannot strip values: {df.Name}")
