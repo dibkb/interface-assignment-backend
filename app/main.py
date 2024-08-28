@@ -76,15 +76,24 @@ async def get_error_logs():
 async def db_test():
     try:
         db = SessionLocal()
+        
+        user = db.query(User).filter_by(email="johndoe@example.com").first()
 
+        if user:
+            return {
+                "message": "Database connection successful",
+                "user": {
+                    "id": user.id,
+                    "name": user.name,
+                    "email": user.email,
+                },
+            }
         # Create a new user
         new_user = User(name="John Doe", email="johndoe@example.com")
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
-
         user = db.query(User).filter_by(email="johndoe@example.com").first()
-
         if user:
             return {
                 "message": "Database connection successful",
