@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI,File,UploadFile
 from sqlalchemy import create_engine,Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from .etl.process import process_files
 import os
 
 app = FastAPI()
@@ -24,6 +25,10 @@ Base.metadata.create_all(bind=engine)
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
+@app.post("/process-files/")
+async def process_uploaded_files(mtr_file: UploadFile = File(...), payment_file: UploadFile = File(...)):
+    classification_summary, tolerance_summary, empty_order_sum = process_files(mtr_file, payment_file)
+    
 
 @app.get("/db-test")
 async def db_test():
