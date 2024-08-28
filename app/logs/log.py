@@ -1,8 +1,10 @@
 import json
-import os
 from datetime import datetime
+import logging
+from pathlib import Path
 
 def log_error(error: Exception, context: str = ""):
+    print("Attempting to log error")
     error_log = {
         "timestamp": datetime.now().isoformat(),
         "error_type": type(error).__name__,
@@ -10,17 +12,30 @@ def log_error(error: Exception, context: str = ""):
         "context": context,
     }
 
-    log_file = "error_log.json"
+    log_dir = Path("logs")
+    log_file = log_dir / "error_log.json"
 
-    # add to logfile
-    if os.path.exists(log_file):
-        with open(log_file, "r+") as file:
-            logs = json.load(file)
-            logs.append(error_log)
-            file.seek(0)
-            json.dump(logs, file, indent=4)
-    else:
-        with open(log_file, "w") as file:
-            json.dump([error_log], file, indent=4)
+    try:
+        log_dir.mkdir(exist_ok=True)
+
+        if log_file.exists():
+            with log_file.open("r+") as file:
+                try:
+                    logs = json.load(file)
+                except json.JSONDecodeError:
+                    logs = []
+                logs.append(error_log)
+                file.seek(0)
+                file.truncate()
+                json.dump(logs, file, indent=4)
+        else:
+            with log_file.open("w") as file:
+                json.dump([error_log], file, indent=4)
+
+        print(f"Error logged successfully to {log_file}")
+    except Exception as e:
+        print(f"Failed to log error to file: {str(e)}")
+        logging.error(f"Failed to log error to file: {str(e)}")
+        logging.error(f"Original error: {error_log}")
 
     return error_log
