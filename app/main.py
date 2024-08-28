@@ -5,8 +5,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from fastapi.responses import JSONResponse
 from .etl.process import process_files
-import io
-import pandas as pd
 import os
 
 app = FastAPI()

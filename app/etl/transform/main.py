@@ -19,3 +19,32 @@ def mark_df(df):
     df.loc[(df['NetAmount'].notna()) & (df['InvoiceAmount'].isna()), 'mark'] = 'Order Not Applicable but Payment Received'
     df.loc[(df['InvoiceAmount'].notna()) & (df['NetAmount'].isna()), 'mark'] = 'Payment Pending'
     return df
+
+
+def check_tolerance(row):
+    pna = row['NetAmount']
+    sia = row['InvoiceAmount']
+    if pd.isna(pna) or pd.isna(sia) or sia == 0:
+        return np.nan
+        
+    percentage = (pna / sia) * 100
+        
+    if 0 < pna <= 300:
+        return 'Within Tolerance' if percentage > 50 else 'Tolerance Breached'
+    elif 300 < pna <= 500:
+        return 'Within Tolerance' if percentage > 45 else 'Tolerance Breached'
+    elif 500 < pna <= 900:
+        return 'Within Tolerance' if percentage > 43 else 'Tolerance Breached'
+    elif 900 < pna <= 1500:
+        return 'Within Tolerance' if percentage > 38 else 'Tolerance Breached'
+    elif pna > 1500:
+        return 'Within Tolerance' if percentage > 30 else 'Tolerance Breached'
+    else:
+        return np.nan
+
+def apply_tolerance_check(df):
+    df['ToleranceCheck'] = df.apply(check_tolerance, axis=1)
+    return df
+
+def empty_order_summary(df):
+    return df[df['NetAmount'] > 0 & df['OrderId'].notna() & (df['OrderId'] == '')].groupby('Description')['NetAmount'].sum().reset_index()
