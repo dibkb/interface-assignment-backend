@@ -1,6 +1,7 @@
 from .load import read_file,preprocess_dataframe
 from .transform.mtr import transform_mtr_df
 from .transform.payment import transform_payment_df
+from .transform.main import merge_dataframes,mark_df
 def process_files(mtr_file, payment_file):
     # load data frame and preprocess
     mtr_df = preprocess_dataframe(read_file(mtr_file))
@@ -10,5 +11,10 @@ def process_files(mtr_file, payment_file):
     mtr_df = transform_mtr_df(mtr_df)
     payment_df = transform_payment_df(payment_df)
 
-    print(mtr_df.head(3))
-    print(payment_df.head(3))
+    # merge data frame
+    merged_df = merge_dataframes(mtr_df, payment_df)
+    merged_df = mark_df(merged_df)
+
+    # apply tolerance level
+    merged_df = apply_tolerance_check(merged_df)
+    print(merged_df.head(3))
