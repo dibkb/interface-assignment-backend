@@ -5,6 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from fastapi.responses import JSONResponse
 from .etl.process import process_files
+from .pydantic.model import FileInput
 import os
 
 app = FastAPI()
@@ -37,7 +38,8 @@ async def root():
     return {"message": "Hello World"}
 @app.post("/process-files/")
 async def process_uploaded_files(mtr_file: UploadFile = File(...), payment_file: UploadFile = File(...)):
-    process_files(mtr_file,payment_file)
+    input_files = FileInput(mtr_file=mtr_file, payment_file=payment_file)
+    process_files(input_files)
 
 @app.get("/db-test")
 async def db_test():
