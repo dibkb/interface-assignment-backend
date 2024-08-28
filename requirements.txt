@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+fastapi-cors
 sqlalchemy
 psycopg2-binary
 pandas

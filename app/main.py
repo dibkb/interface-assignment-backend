@@ -1,8 +1,12 @@
 from fastapi import FastAPI,File,UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine,Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from .etl.process import process_files
+from fastapi.responses import JSONResponse
+from .etl.load import read_file
+import io
+import pandas as pd
 import os
 
 app = FastAPI()
@@ -22,13 +26,21 @@ class User(Base):
 
 Base.metadata.create_all(bind=engine)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3001"],
+    allow_credentials=True,
+    allow_methods=["*"], 
+    allow_headers=["*"], 
+)
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
 @app.post("/process-files/")
 async def process_uploaded_files(mtr_file: UploadFile = File(...), payment_file: UploadFile = File(...)):
-    classification_summary, tolerance_summary, empty_order_sum = process_files(mtr_file, payment_file)
-    
+    mtr_df = read_file(mtr_file)
+    payment_df = read_file(payment_file)
 
 @app.get("/db-test")
 async def db_test():

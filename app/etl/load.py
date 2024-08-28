@@ -1,12 +1,14 @@
 import pandas as pd
-
-def load_file(file, file_type):
-    if file_type == 'csv':
-        return pd.read_csv(file)
-    elif file_type == 'excel':
-        return pd.read_excel(file)
+import io
+def read_file(file):
+    content = file.file.read()
+    if file.filename.endswith('.csv'):
+        return pd.read_csv(io.StringIO(content.decode('utf-8')))
+    elif file.filename.endswith(('.xls', '.xlsx')):
+        return pd.read_excel(io.BytesIO(content))
     else:
-        raise ValueError("Unsupported file type")
+        # Todo log this in json file
+        raise ValueError(f"Unsupported file format: {file.filename}")
 
 def preprocess_dataframe(df):
     df.columns = df.columns.str.title().str.replace(' ', '')
