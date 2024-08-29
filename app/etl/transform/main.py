@@ -3,12 +3,13 @@ import numpy as np
 from  ...logs.log import log_error
 def merge_dataframes(mtr_df, payment_df):
     try:
-        # logging
+        # start logging
         log_error("Starting dataframe merge", context="merge_dataframes", level="INFO", 
             additional_info={"mtr_df_shape": mtr_df.shape, "payment_df_shape": payment_df.shape})
         
         merged_df = pd.merge(mtr_df, payment_df, on='OrderId', how='outer', suffixes=('_mtr', '_payment')) 
 
+        # log merging
         log_error("Dataframes merged successfully", context="merge_dataframes", level="INFO", 
                   additional_info={"merged_df_shape": merged_df.shape}) 
                
@@ -22,16 +23,18 @@ def merge_dataframes(mtr_df, payment_df):
             lambda row: float(row['InvoiceAmount']) - float(row['Total']) if pd.notna(row['InvoiceAmount']) and pd.notna(row['Total']) else np.nan,
             axis=1
         )
-
+        # log sucessful merge and transformation
         log_error("Dataframe merge and transformation completed", context="merge_dataframes", level="INFO")
 
         return merged_df
     
     except KeyError as ke:
+        # log keyerror, missing certain columns in the dataset
         log_error(ke, context="KeyError in merge_dataframes : Missing expected columns", additional_info={"error_type": "Missing expected columns"})
         raise   
 
     except Exception as e:
+        # exception error
         log_error(e, context="General Error in merge_dataframes")
         raise
 
