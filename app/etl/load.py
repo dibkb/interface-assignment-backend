@@ -25,10 +25,12 @@ def read_file(file:File):
         raise
 
 def preprocess_dataframe(df:pd.DataFrame) -> pd.DataFrame:
-
     try:
         df.columns = df.columns.str.title().str.replace(' ', '')
+       
         return df.map(lambda x: x.strip() if isinstance(x, str) else x)
+        
+        return df
     except Exception as e:
         log_errors(e,context=f"Cannot strip values: {df.columns}") 
         raise ValueError(f"Cannot strip values: {df.columns}")

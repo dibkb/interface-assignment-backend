@@ -38,14 +38,14 @@ def process_files(input_files: FileInput):
         print(empty_order_sum)
 
     except pd.errors.EmptyDataError as ede:
-        # log_errors(ede, context="EmptyDataError in process_files: Possibly an empty input file.")
+        log_errors(ede, context="EmptyDataError in process_files: Possibly an empty input file.")
         raise
     except ValueError as ve:
-        # log_errors(ve, context="ValueError in process_files: Likely due to unsupported file format or incorrect data processing.")
+        log_errors(ve, context="ValueError in process_files: Likely due to unsupported file format or incorrect data processing.")
         raise
     except KeyError as ke:
-        # log_errors(ke, context="KeyError in process_files: Missing expected columns in one of the data frames.")
+        log_errors(ke, context="KeyError in process_files: Missing expected columns in one of the data frames.")
         raise
     except Exception as e:
-        # log_errors(e, context="General error in process_files.")
+        log_errors(e, context="General error in process_files.")
         raise
