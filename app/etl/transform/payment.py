@@ -1,17 +1,18 @@
-from ...logs.log import log_error
 import pandas as pd
+from ...logs.logger import log_errors
+from ...db.schema.error_log import LevelType
 def transform_payment_df(df:pd.DataFrame):
     try:
         # start logging
-        log_error("Starting payment transformation", context="transforming payment dataframe", level="INFO", 
-            additional_info={"payment_df_columns": df.columns})
+        # log_errors("Starting payment transformation", context="transforming payment dataframe", level=LevelType.INFO.value, 
+        #     additional_info={"payment_df_columns": df.columns})
         
         df = df[df['Type'] != 'Transfer']
         df = df.rename(columns={'Type': 'PaymentType', 'Date/Time': 'PaymentDate'})
 
         # start logging
-        log_error("Renaming PaymentDate successfully", context="rename column", level="INFO", 
-            )
+        # log_errors("Renaming PaymentDate successfully", context="rename column", level=LevelType.INFO.value, 
+        #     )
         
         df['PaymentType'] = df['PaymentType'].replace({
             'Ajdustment': 'Order',
@@ -22,21 +23,21 @@ def transform_payment_df(df:pd.DataFrame):
         })
 
         # start logging
-        log_error("Renaming PaymentType values successfully", context="rename some cells of PaymentType", level="INFO", 
-            )
+        # log_errors("Renaming PaymentType values successfully", context="renaming cells of PaymentType", level=LevelType.INFO.value, 
+        #     )
         
         df['TransactionType'] = 'Payment'
 
         # start logging
-        log_error("Renaming complete in payment_dataframe", context="rename some cells of PaymentType", level="INFO",additional_info={"payment_df_columns": df.columns} 
-        )
+        # log_errors("Renaming complete in payment_dataframe", context="rename some cells of           PaymentType", level=LevelType.INFO.value,additional_info={"payment_df_columns": df.columns} 
+        # )
 
         return df
     except KeyError as k:
         # transform_payment_df error
-        log_error(k, context="KeyError in transform_payment_df: Missing 'Type' or 'Date/Time' column")
+        # log_errors(k, context="KeyError in transform_payment_df: Missing 'Type' or 'Date/Time' column")
         raise
     except Exception as e:
         # other general errors
-        log_error(e, context="General Error in transform_payment_df")
+        # log_errors(e, context="General Error in transform_payment_df")
         raise

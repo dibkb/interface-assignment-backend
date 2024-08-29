@@ -1,13 +1,13 @@
 from typing import Union, Optional
 from fastapi import Request
 from ..db.database import get_db_context, get_db_from_request
-from ..db.schema.error_log import ErrorLog
+from ..db.schema.error_log import ErrorLog,LevelType
 import datetime
 
 def log_errors(
     error: Union[str, Exception],
     context: str = "",
-    level="ERROR",
+    level=LevelType.ERROR,
     additional_info=None,
     request: Optional[Request] = None
 ):

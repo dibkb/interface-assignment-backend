@@ -11,7 +11,7 @@ from .pydantic.model import FileInput
 from .etl.process import process_files
 from .database_init import init_db 
 from .logs.logger import log_errors 
-from .db.schema.error_log import ErrorLog 
+from .db.schema.error_log import ErrorLog,LevelType
 from .db.database import get_db_context, get_db_from_request
 
 # Set up FastAPI app
@@ -39,7 +39,7 @@ async def show_logs(request:Request):
 
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": LevelType.INFO.value}
 
 @app.post("/process-files")
 async def process_uploaded_files(mtr_file: UploadFile = File(...), payment_file: UploadFile = File(...)):
@@ -47,7 +47,7 @@ async def process_uploaded_files(mtr_file: UploadFile = File(...), payment_file:
         # logging info
         log_errors(error="Processing input files", 
            context="processing the mtr_file and payment_file from client",
-           level="INFO",
+           level=LevelType.INFO.value,
            additional_info={
                "mtr_file": mtr_file.filename,
                "payment_file": payment_file.filename
@@ -59,7 +59,7 @@ async def process_uploaded_files(mtr_file: UploadFile = File(...), payment_file:
         # finished processing
         log_errors(error="Processing input files complete", 
            context="finished processing the mtr_file and payment_file from client",
-           level="INFO",
+           level=LevelType.INFO.value,
            additional_info={
                "mtr_file": mtr_file.filename,
                "payment_file": payment_file.filename
