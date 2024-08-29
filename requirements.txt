@@ -2,7 +2,7 @@ fastapi
 uvicorn
 fastapi-cors
 sqlalchemy
-psycopg2-binary
+psycopg2
 pandas
 numpy
 openpyxl
