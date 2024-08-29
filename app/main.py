@@ -1,85 +1,48 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends,Request
+# Import necessary modules from FastAPI, SQLAlchemy, and other utilities
+from fastapi import FastAPI, File, UploadFile, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import create_engine, Column, Integer, String,DateTime,JSON
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
-from typing import Union, Optional
-from pydantic import BaseModel
-from .pydantic.model import FileInput
 from pydantic import ValidationError
+
+# Import custom modules and functions
+from .pydantic.model import FileInput 
 from .etl.process import process_files
-import os
-import datetime
-from contextlib import contextmanager
+from .database_init import init_db 
+from .logs.logger import log_errors 
+from .db.schema.error_log import ErrorLog 
+from .db.database import get_db_context, get_db_from_request
+
 # Set up FastAPI app
 app = FastAPI()
 
 # Enable CORS for specified origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Allow requests from this origin
+    allow_origins=["http://localhost:3000"], 
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"], 
 )
 
-# Set up the database
-SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL")
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-
-# Dependency to get DB session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-@contextmanager
-def get_db_context():
-    db = next(get_db())
-    try:
-        yield db
-    finally:
-        db.close()
-
-def get_db_from_request(request: Request) -> Session:
-    return request.state.db if hasattr(request.state, 'db') else next(get_db())
-
-# SQLAlchemy model for the the Error modal
-class ErrorLog(Base):
-    __tablename__ = "error_logs"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    timestamp = Column(DateTime, default=datetime.datetime.now())
-    level = Column(String, index=True)
-    error_type = Column(String)
-    message = Column(String)
-    context = Column(String)
-    additional_info = Column(JSON, default={})
-
-# Create the table if it doesn't exist
-Base.metadata.create_all(bind=engine)
+# init db...
+init_db()
 
 @app.api_route("/logs", methods=["GET"])
-async def test_db(db: Session = Depends(get_db)):
+async def show_logs(request:Request):
     # Query all logs entries
-    demos = db.query(ErrorLog).all()
-
-    return JSONResponse(content=jsonable_encoder(demos),status_code=200)
-
+    with get_db_context() as db:
+            db = get_db_from_request(request)
+            demos = db.query(ErrorLog).all()
+            return JSONResponse(content=jsonable_encoder(demos),status_code=200)
 
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
 
-
 @app.post("/process-files")
-async def process_uploaded_files(db: Session = Depends(get_db),mtr_file: UploadFile = File(...), payment_file: UploadFile = File(...)):
+async def process_uploaded_files(mtr_file: UploadFile = File(...), payment_file: UploadFile = File(...)):
     try:
         # logging info
         log_errors(error="Processing input files", 
@@ -110,25 +73,3 @@ async def process_uploaded_files(db: Session = Depends(get_db),mtr_file: UploadF
         error_details = log_errors(e, context="File Processing Error")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {error_details['message']}")
 
-
-def log_errors(
-    error: Union[str, Exception],
-    context: str = "",
-    level="ERROR",
-    additional_info=None,
-    request: Optional[Request] = None
-):
-    with get_db_context() as db:
-        if request:
-            db = get_db_from_request(request)
-        
-        error_log = ErrorLog(
-            timestamp=datetime.datetime.now(),
-            level=level,
-            error_type=type(error).__name__ if isinstance(error, Exception) else "INFO",
-            message=str(error),
-            context=context,
-            additional_info=additional_info or {}
-        )
-        db.add(error_log)
-        db.commit()
