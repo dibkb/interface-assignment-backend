@@ -14,7 +14,7 @@ def process_files(input_files: FileInput):
             "Starting the file processing pipeline",
             context="process_files",
             level=LevelType.INFO.value,
-            additional_info={"input_files": input_files.dict()}
+            additional_info={"input_file_name":input_files.dict()}
         )
         
         # Load data frames and preprocess
@@ -121,7 +121,7 @@ def process_files(input_files: FileInput):
         log_errors(
             ke,
             context="KeyError in process_files: Missing expected columns in one of the data frames.",
-            level=LevelType.ERROR.value
+            level=LevelType.ERROR.value,
         )
         raise
     except Exception as e:
