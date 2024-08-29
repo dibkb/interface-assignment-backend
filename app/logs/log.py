@@ -3,13 +3,15 @@ from datetime import datetime
 import logging
 from pathlib import Path
 
-def log_error(error: Exception, context: str = ""):
+def log_error(error: Exception, context: str = "",level="ERROR", additional_info=None):
     print("Attempting to log error")
     error_log = {
         "timestamp": datetime.now().isoformat(),
+        "level": level,
         "error_type": type(error).__name__,
         "message": str(error),
         "context": context,
+        "additional_info": additional_info or {}
     }
 
     log_dir = Path("logs")
