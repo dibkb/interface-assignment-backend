@@ -1,9 +1,12 @@
 import pandas as pd
+from fastapi import File
 import io
 from  ..logs.log import log_error
 
-def read_file(file):
+def read_file(file:File):
     try:
+        log_error("Starting reading file", context="reading and converting to pandas df", level="INFO", 
+            additional_info={"file_info": file.filename, "size": file.size})
         content = file.file.read()
         if file.filename.endswith('.csv'):
             return pd.read_csv(io.StringIO(content.decode('utf-8')))

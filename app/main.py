@@ -30,7 +30,7 @@ Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3001"],
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"], 
     allow_headers=["*"], 
@@ -44,6 +44,14 @@ async def root():
 @app.post("/process-files")
 async def process_uploaded_files(mtr_file: UploadFile = File(...), payment_file: UploadFile = File(...)):
     try:
+        log_error("Starting processing files", context="mtr and payment file", additional_info={
+            "mtr_file_info" : {
+                mtr_file.filename,
+            },
+            "payment_file_info" : {
+                payment_file.filename,
+            },
+        })
         input_files = FileInput(mtr_file=mtr_file, payment_file=payment_file)
         process_files(input_files)
 
