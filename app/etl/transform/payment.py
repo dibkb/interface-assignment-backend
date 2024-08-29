@@ -1,18 +1,34 @@
 import pandas as pd
 from ...logs.logger import log_errors
 from ...db.schema.error_log import LevelType
-def transform_payment_df(df:pd.DataFrame):
-    try:
-        # start logging
-        log_errors("Starting payment transformation", context="transforming payment dataframe", level=LevelType.INFO.value, 
-            additional_info={"payment_df_columns": df.columns.to_list()})
-        
-        df = df[df['Type'] != 'Transfer']
-        df = df.rename(columns={'Type': 'PaymentType', 'Date/Time': 'PaymentDate'})
 
-        # start logging
-        log_errors("Renaming PaymentDate successfully", context="rename column", level=LevelType.INFO.value)
+def transform_payment_df(df: pd.DataFrame):
+    try:
+        # Log the start of the transformation process
+        log_errors(
+            "Starting payment transformation",
+            context="transform_payment_df",
+            level=LevelType.INFO.value,
+            additional_info={"payment_df_columns": df.columns.to_list()}
+        )
         
+        # Filter out 'Transfer' types and rename columns
+        df = df[df['Type'] != 'Transfer']
+        log_errors(
+            "Filtered out 'Transfer' types",
+            context="transform_payment_df",
+            level=LevelType.INFO.value,
+            additional_info={"remaining_rows": df.shape[0]}
+        )
+
+        df = df.rename(columns={'Type': 'PaymentType', 'Date/Time': 'PaymentDate'})
+        log_errors(
+            "Renamed columns: 'Type' to 'PaymentType' and 'Date/Time' to 'PaymentDate'",
+            context="transform_payment_df",
+            level=LevelType.INFO.value
+        )
+
+        # Replace specific values in the 'PaymentType' column
         df['PaymentType'] = df['PaymentType'].replace({
             'Ajdustment': 'Order',
             'FBA Inventory Fee': 'Order',
@@ -20,23 +36,46 @@ def transform_payment_df(df:pd.DataFrame):
             'Service Fee': 'Order',
             'Refund': 'Return'
         })
+        log_errors(
+            "Replaced values in 'PaymentType' column",
+            context="transform_payment_df",
+            level=LevelType.INFO.value
+        )
 
-        # start logging
-        log_errors("Renaming PaymentType values successfully", context="renaming cells of PaymentType", level=LevelType.INFO.value, 
-            )
-        
+        # Add a new column 'TransactionType'
         df['TransactionType'] = 'Payment'
+        log_errors(
+            "Added 'TransactionType' column with value 'Payment'",
+            context="transform_payment_df",
+            level=LevelType.INFO.value,
+            additional_info={"updated_columns": df.columns.to_list()}
+        )
 
-        # start logging
-        log_errors("Renaming complete in payment_dataframe", context="rename some cells of           PaymentType", level=LevelType.INFO.value,additional_info={"payment_df_columns": df.columns.to_list()} 
+        # Log the successful completion of the transformation process
+        log_errors(
+            "Payment transformation completed successfully",
+            context="transform_payment_df",
+            level=LevelType.INFO.value,
+            additional_info={"final_df_shape": df.shape}
         )
 
         return df
+    
     except KeyError as k:
-        # transform_payment_df error
-        log_errors(k, context="KeyError in transform_payment_df: Missing 'Type' or 'Date/Time' column")
+        # Log KeyError with detailed information
+        log_errors(
+            k,
+            context="KeyError in transform_payment_df: Missing 'Type' or 'Date/Time' column",
+            level=LevelType.ERROR.value,
+            additional_info={"payment_df_columns": df.columns.to_list()}
+        )
         raise
+    
     except Exception as e:
-        # other general errors
-        log_errors(e, context="General Error in transform_payment_df")
+        # Log any other exceptions with detailed information
+        log_errors(
+            e,
+            context="General Error in transform_payment_df",
+            level=LevelType.ERROR.value
+        )
         raise

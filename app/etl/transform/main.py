@@ -2,18 +2,18 @@ import pandas as pd
 import numpy as np
 from ...db.schema.error_log import LevelType
 from ...logs.logger import log_errors
+
 def merge_dataframes(mtr_df, payment_df):
     try:
-        # start logging
         log_errors(error="Starting dataframe merge", context="merge_dataframes", level=LevelType.INFO.value, 
             additional_info={"mtr_df_shape": mtr_df.shape, "payment_df_shape": payment_df.shape})
-        
+
         merged_df = pd.merge(mtr_df, payment_df, on='OrderId', how='outer', suffixes=('_mtr', '_payment')) 
 
-        # log merging
         log_errors(error="Dataframes merged successfully", context="merge_dataframes", level=LevelType.INFO.value, 
                   additional_info={"merged_df_shape": merged_df.shape}) 
-               
+
+        log_errors(error="Starting data transformations", context="merge_dataframes", level=LevelType.INFO.value)
         merged_df['Total'] = merged_df['Total'].where(merged_df['Total'].notna(), np.nan)
         merged_df['Total'] = merged_df['Total'].str.replace(',', '').astype(float)
 
@@ -22,28 +22,24 @@ def merge_dataframes(mtr_df, payment_df):
             axis=1
         )
 
-        # logging success after merging
-        log_errors(error="Merging dataframe and transfroamtion complete", context="merge_dataframes to one", level=LevelType.INFO.value,
+        log_errors(error="Merging dataframe and transformation complete", context="merge_dataframes", level=LevelType.INFO.value,
         additional_info={
                "merged_df_columns": merged_df.columns.tolist(),
                "merged_df_shape": merged_df.shape
-        }
-                   )
+        })
         return merged_df
-    
-    except KeyError as ke:
-        # log keyerror, missing certain columns in the dataset
-        log_errors(ke, context="KeyError in merge_dataframes : Missing expected columns", additional_info={"error_type": "Missing expected columns"})
-        raise   
 
+    except KeyError as ke:
+        log_errors(ke, context="KeyError in merge_dataframes: Missing expected columns", level=LevelType.ERROR.value, 
+                   additional_info={"error_type": "Missing expected columns"})
+        raise   
     except Exception as e:
-        # exception error
-        log_errors(e, context="General Error in merge_dataframes")
+        log_errors(e, context="General Error in merge_dataframes", level=LevelType.ERROR.value)
         raise
 
 def mark_df(df):
     try:
-        log_errors(error="Making mark column", context="making a mark column in the merged dataframe")
+        log_errors(error="Starting mark column creation", context="mark_df", level=LevelType.INFO.value)
 
         df['mark'] = ''
         df.loc[df['OrderId'].str.len() == 10, 'mark'] = 'Removal Order IDs'
@@ -53,14 +49,15 @@ def mark_df(df):
         df.loc[(df['NetAmount'].notna()) & (df['InvoiceAmount'].isna()), 'mark'] = 'Order Not Applicable but Payment Received'
         df.loc[(df['InvoiceAmount'].notna()) & (df['NetAmount'].isna()), 'mark'] = 'Payment Pending'
 
-        log_errors(error="Mark column and NetAmount column created", context="making a mark column and some other columns in the merged dataframe")
+        log_errors(error="Mark column creation complete", context="mark_df", level=LevelType.INFO.value,
+                   additional_info={"mark_value_counts": df['mark'].value_counts().to_dict()})
         return df
-    
+
     except KeyError as ke:
-        log_errors(ke, context="KeyError in mark_df: Missing expected columns")
+        log_errors(ke, context="KeyError in mark_df: Missing expected columns", level=LevelType.ERROR.value)
         raise
     except Exception as e:
-        log_errors(e, context="General Error in mark_df")
+        log_errors(e, context="General Error in mark_df", level=LevelType.ERROR.value)
         raise
 
 def check_tolerance(row):
@@ -69,9 +66,9 @@ def check_tolerance(row):
         sia = row['InvoiceAmount']
         if pd.isna(pna) or pd.isna(sia) or sia == 0:
             return np.nan
-            
+
         percentage = (pna / sia) * 100
-            
+
         if 0 < pna <= 300:
             return 'Within Tolerance' if percentage > 50 else 'Tolerance Breached'
         elif 300 < pna <= 500:
@@ -84,28 +81,35 @@ def check_tolerance(row):
             return 'Within Tolerance' if percentage > 30 else 'Tolerance Breached'
         else:
             return np.nan
-        
+
     except KeyError as ke:
-        log_errors(ke, context="KeyError in check_tolerance: Missing 'NetAmount' or 'InvoiceAmount'")
+        log_errors(ke, context="KeyError in check_tolerance: Missing 'NetAmount' or 'InvoiceAmount'", level=LevelType.ERROR.value)
         raise
     except Exception as e:
-        log_errors(e, context="General Error in check_tolerance")
+        log_errors(e, context="General Error in check_tolerance", level=LevelType.ERROR.value)
         raise        
 
 def apply_tolerance_check(df):
     try:
+        log_errors(error="Starting tolerance check application", context="apply_tolerance_check", level=LevelType.INFO.value)
         df['ToleranceCheck'] = df.apply(check_tolerance, axis=1)
+        log_errors(error="Tolerance check application complete", context="apply_tolerance_check", level=LevelType.INFO.value,
+                   additional_info={"tolerance_check_value_counts": df['ToleranceCheck'].value_counts().to_dict()})
         return df
     except Exception as e:
-        log_errors(e, context="Error in apply_tolerance_check")
+        log_errors(e, context="Error in apply_tolerance_check", level=LevelType.ERROR.value)
         raise
 
 def empty_order_summary(df):
     try:
-        return df[df['NetAmount'] > 0 & df['OrderId'].notna() & (df['OrderId'] == '')].groupby('Description')['NetAmount'].sum().reset_index()
+        log_errors(error="Starting empty order summary", context="empty_order_summary", level=LevelType.INFO.value)
+        summary = df[(df['NetAmount'] > 0) & df['OrderId'].notna() & (df['OrderId'] == '')].groupby('Description')['NetAmount'].sum().reset_index()
+        log_errors(error="Empty order summary complete", context="empty_order_summary", level=LevelType.INFO.value,
+                   additional_info={"summary_shape": summary.shape})
+        return summary
     except KeyError as ke:
-        log_errors(ke, context="KeyError in empty_order_summary: Missing expected columns")
+        log_errors(ke, context="KeyError in empty_order_summary: Missing expected columns", level=LevelType.ERROR.value)
         raise
     except Exception as e:
-        log_errors(e, context="General Error in empty_order_summary")
+        log_errors(e, context="General Error in empty_order_summary", level=LevelType.ERROR.value)
         raise
