@@ -30,12 +30,20 @@ app.add_middleware(
 init_db()
 
 @app.api_route("/logs", methods=["GET"])
-async def show_logs(request:Request):
+async def show_logs(request:Request,page: int = 1, limit: int = 20):
     # Query all logs entries
+    page = max(1,page)
+    offest = (page-1)*limit
     with get_db_context() as db:
             db = get_db_from_request(request)
-            demos = db.query(ErrorLog).all()
-            return JSONResponse(content=jsonable_encoder(demos),status_code=200)
+            logs = db.query(ErrorLog).offset(offest).limit(limit).all()
+            total_count = db.query(ErrorLog).count()
+            total_pages = (total_count - 1) // limit + 1
+            return JSONResponse(content=jsonable_encoder({
+                 "results" : logs,
+                 "current_page": page,
+                 "total_page" : total_pages,
+            }),status_code=200)
 
 @app.get("/")
 async def root():

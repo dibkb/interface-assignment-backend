@@ -185,7 +185,7 @@ def apply_tolerance_check(df):
         )
         raise
 
-def empty_order_summary(df):
+def empty_order_summary(df:pd.DataFrame):
     try:
         # Logging the start of empty order summary generation
         log_errors(
@@ -195,7 +195,7 @@ def empty_order_summary(df):
         )
         
         # Generate summary for empty orders with positive 'NetAmount'
-        summary = df[(df['NetAmount'] > 0) & df['OrderId'].notna() & (df['OrderId'] == '')].groupby('Description')['NetAmount'].sum().reset_index()
+        summary = df[df['NetAmount'] > 0 & df['OrderId'].notna() & (df['OrderId'] == '')].groupby('Description')['NetAmount'].sum().reset_index()
 
         # Logging the completion of empty order summary generation
         log_errors(
@@ -204,6 +204,7 @@ def empty_order_summary(df):
             level=LevelType.INFO.value,
             additional_info={"summary_shape": summary.shape}
         )
+        print(summary)
         return summary
     except KeyError as ke:
         # Logging any KeyError exceptions encountered
