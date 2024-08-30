@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from pydantic import ValidationError
+import pandas as pd
 
 # Import custom modules and functions
 from .pydantic.model import FileInput 
@@ -15,7 +16,7 @@ from .db.schema.error_log import ErrorLog,LevelType
 from .db.save_dataframe import save_dataframe_to_db
 from .db.schema.processed_dataframe import DataFrameRecord
 from .db.database import get_db_context, get_db_from_request
-
+from .pydantic.dataframe_schema import DataFrameRecordResponse,DataFrameRecordSchema
 # Set up FastAPI app
 app = FastAPI()
 
@@ -52,42 +53,46 @@ async def root():
     return {"message": LevelType.INFO.value}
 
 @app.post("/process-files")
-async def process_uploaded_files(request:Request,mtr_file: UploadFile = File(...), payment_file: UploadFile = File(...)):
+async def process_uploaded_files(request: Request, mtr_file: UploadFile = File(...), payment_file: UploadFile = File(...)):
     try:
+        # Using context manager to handle DB session
         with get_db_context() as db:
-            db = get_db_from_request(request)
+            # Check if the merged_df table exists and has any rows
+            existing_file = pd.read_sql("SELECT * FROM information_schema.tables WHERE table_name = 'merge_df'", con=db.connection())
+            
+            if not existing_file.empty:  # Check if the DataFrame is not empty
+                return JSONResponse({"processed_file": merged_df.to_json()}, status_code=200)
+            
+            # Logging info
+            log_errors(
+                error="Processing input files",
+                context="processing the mtr_file and payment_file from client",
+                level=LevelType.INFO.value,
+                additional_info={
+                    "mtr_file": mtr_file.filename,
+                    "payment_file": payment_file.filename
+                }
+            )
 
-            FILENAME = mtr_file.filename+payment_file.filename
-        
-            # reports = db.query(DataFrameRecord).filter_by(filename=FILENAME).all()
-            # print(reports)
-            # if(reports):
-            #     return JSONResponse(content = jsonable_encoder({"reports":reports}),status_code=200)
-                # logging info
-                
-            log_errors(error="Processing input files", 
-            context="processing the mtr_file and payment_file from client",
-            level=LevelType.INFO.value,
-            additional_info={
-                "mtr_file": mtr_file.filename,
-                "payment_file": payment_file.filename
-            })
-
+            # Processing the files
             input_files = FileInput(mtr_file=mtr_file, payment_file=payment_file)
-            classification_summary,tolerance_summary,transaction_summary,merged_df = process_files(input_files)
-        
-            # finished processing
-            log_errors(error="Processing input files complete", 
-            context="finished processing the mtr_file and payment_file from client",
-            level=LevelType.INFO.value,
-            additional_info={
-                "mtr_file": mtr_file.filename,
-                "payment_file": payment_file.filename
-            })
+            classification_summary, tolerance_summary, transaction_summary, merged_df = process_files(input_files)
 
-            # save to the database the processed datframe
+            # Logging completion
+            log_errors(
+                error="Processing input files complete",
+                context="finished processing the mtr_file and payment_file from client",
+                level=LevelType.INFO.value,
+                additional_info={
+                    "mtr_file": mtr_file.filename,
+                    "payment_file": payment_file.filename
+                }
+            )
 
-            save_dataframe_to_db(merged_df,FILENAME)
+            # Save the DataFrame to the database
+            merged_df.to_sql('merge_df', con=db.connection(), if_exists='replace', index=False)
+
+            return JSONResponse({"processed_file": merged_df.to_json()}, status_code=200)
 
     except ValidationError as v:
         error_details = log_errors(v, context="Validation Error")

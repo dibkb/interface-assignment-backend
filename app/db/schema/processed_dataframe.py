@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float,DateTime
+from sqlalchemy import Column, Integer, String, Float
 from ..database import Base
 class DataFrameRecord(Base):
     __tablename__ = 'dataframe_records'
@@ -10,14 +10,14 @@ class DataFrameRecord(Base):
     OrderId = Column(String, nullable=True)
     ShipmentDate = Column(String, nullable=True)
     OrderDate = Column(String, nullable=True)
-    ShipmentItemId = Column(Float, nullable=True)
+    ShipmentItemId = Column(String, nullable=True)
     ItemDescription = Column(String, nullable=True)
     PaymentDate = Column(String, nullable=True)
     PaymentType = Column(String, nullable=True)
     Description = Column(String, nullable=True)
     Total = Column(Float, nullable=True)
     TransactionType_payment = Column(String, nullable=True)
-    NetAmount = Column(Float, nullable=True)
+    NetAmount = Column(String, nullable=True)
     mark = Column(String, nullable=True)
     ToleranceCheck = Column(String, nullable=True)
 
