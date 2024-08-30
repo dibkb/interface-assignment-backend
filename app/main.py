@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
+from sqlalchemy import desc
 from pydantic import ValidationError
 import pandas as pd
 
@@ -13,10 +14,8 @@ from .etl.process import process_files
 from .database_init import init_db 
 from .logs.logger import log_errors 
 from .db.schema.error_log import ErrorLog,LevelType
-from .db.save_dataframe import save_dataframe_to_db
-from .db.schema.processed_dataframe import DataFrameRecord
+from .db.query import select_all_from_table
 from .db.database import get_db_context, get_db_from_request
-from .pydantic.dataframe_schema import DataFrameRecordResponse,DataFrameRecordSchema
 # Set up FastAPI app
 app = FastAPI()
 
@@ -37,11 +36,14 @@ async def show_logs(request:Request,page: int = 1, limit: int = 20):
     # Query all logs entries
     page = max(1,page)
     offest = (page-1)*limit
+
     with get_db_context() as db:
             db = get_db_from_request(request)
-            logs = db.query(ErrorLog).offset(offest).limit(limit).all()
+            logs = db.query(ErrorLog).order_by(desc(ErrorLog.timestamp)).offset(offest).limit(limit).all()
             total_count = db.query(ErrorLog).count()
+
             total_pages = (total_count - 1) // limit + 1
+
             return JSONResponse(content=jsonable_encoder({
                  "results" : logs,
                  "current_page": page,
@@ -57,10 +59,23 @@ async def process_uploaded_files(request: Request, mtr_file: UploadFile = File(.
     try:
         # Using context manager to handle DB session
         with get_db_context() as db:
+            # define filename
+            FILENAME =  mtr_file.filename + payment_file.filename
             # Check if the merged_df table exists and has any rows
-            existing_file = pd.read_sql("SELECT * FROM information_schema.tables WHERE table_name = 'merge_df'", con=db.connection())
+            existing_file = pd.read_sql(select_all_from_table(FILENAME), con=db.connection())
             
-            if not existing_file.empty:  # Check if the DataFrame is not empty
+
+            if not existing_file.empty:
+                # log that retrived from database.
+                log_errors(
+                    error="Retriving file from the database",
+                    context="File already exists in the database",
+                    level=LevelType.INFO.value,
+                    additional_info={
+                        "filename" : FILENAME
+                    }
+                )
+
                 return JSONResponse({"processed_file": merged_df.to_json()}, status_code=200)
             
             # Logging info
@@ -90,7 +105,16 @@ async def process_uploaded_files(request: Request, mtr_file: UploadFile = File(.
             )
 
             # Save the DataFrame to the database
-            merged_df.to_sql('merge_df', con=db.connection(), if_exists='replace', index=False)
+            merged_df.to_sql(FILENAME, con=db.connection(), if_exists='replace', index=False)
+
+            log_errors(
+                error="Saving file to the database",
+                context=f"saving file to the database with table name {FILENAME}",
+                level=LevelType.INFO.value,
+                additional_info={
+                    "filename" : FILENAME
+                }
+            )
 
             return JSONResponse({"processed_file": merged_df.to_json()}, status_code=200)
 
