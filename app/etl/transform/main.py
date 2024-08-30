@@ -204,7 +204,6 @@ def empty_order_summary(df:pd.DataFrame):
             level=LevelType.INFO.value,
             additional_info={"summary_shape": summary.shape}
         )
-        print(summary)
         return summary
     except KeyError as ke:
         # Logging any KeyError exceptions encountered

@@ -12,6 +12,8 @@ from .etl.process import process_files
 from .database_init import init_db 
 from .logs.logger import log_errors 
 from .db.schema.error_log import ErrorLog,LevelType
+from .db.save_dataframe import save_dataframe_to_db
+from .db.schema.processed_dataframe import DataFrameRecord
 from .db.database import get_db_context, get_db_from_request
 
 # Set up FastAPI app
@@ -50,28 +52,42 @@ async def root():
     return {"message": LevelType.INFO.value}
 
 @app.post("/process-files")
-async def process_uploaded_files(mtr_file: UploadFile = File(...), payment_file: UploadFile = File(...)):
+async def process_uploaded_files(request:Request,mtr_file: UploadFile = File(...), payment_file: UploadFile = File(...)):
     try:
-        # logging info
-        log_errors(error="Processing input files", 
-           context="processing the mtr_file and payment_file from client",
-           level=LevelType.INFO.value,
-           additional_info={
-               "mtr_file": mtr_file.filename,
-               "payment_file": payment_file.filename
-        })
+        with get_db_context() as db:
+            db = get_db_from_request(request)
 
-        input_files = FileInput(mtr_file=mtr_file, payment_file=payment_file)
-        process_files(input_files)
+            FILENAME = mtr_file.filename+payment_file.filename
         
-        # finished processing
-        log_errors(error="Processing input files complete", 
-           context="finished processing the mtr_file and payment_file from client",
-           level=LevelType.INFO.value,
-           additional_info={
-               "mtr_file": mtr_file.filename,
-               "payment_file": payment_file.filename
-        })
+            # reports = db.query(DataFrameRecord).filter_by(filename=FILENAME).all()
+            # print(reports)
+            # if(reports):
+            #     return JSONResponse(content = jsonable_encoder({"reports":reports}),status_code=200)
+                # logging info
+                
+            log_errors(error="Processing input files", 
+            context="processing the mtr_file and payment_file from client",
+            level=LevelType.INFO.value,
+            additional_info={
+                "mtr_file": mtr_file.filename,
+                "payment_file": payment_file.filename
+            })
+
+            input_files = FileInput(mtr_file=mtr_file, payment_file=payment_file)
+            classification_summary,tolerance_summary,transaction_summary,merged_df = process_files(input_files)
+        
+            # finished processing
+            log_errors(error="Processing input files complete", 
+            context="finished processing the mtr_file and payment_file from client",
+            level=LevelType.INFO.value,
+            additional_info={
+                "mtr_file": mtr_file.filename,
+                "payment_file": payment_file.filename
+            })
+
+            # save to the database the processed datframe
+
+            save_dataframe_to_db(merged_df,FILENAME)
 
     except ValidationError as v:
         error_details = log_errors(v, context="Validation Error")

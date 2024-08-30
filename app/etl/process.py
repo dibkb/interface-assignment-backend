@@ -83,18 +83,13 @@ def process_files(input_files: FileInput):
         )
 
         # Generate empty order summary
-        empty_order_sum = empty_order_summary(merged_df)
+        transaction_summary = empty_order_summary(merged_df)
         log_errors(
             "Generated empty order summary",
             context="process_files",
             level=LevelType.INFO.value,
-            additional_info={"empty_order_summary": empty_order_sum.to_dict(orient='records')}
+            additional_info={"empty_order_summary": transaction_summary.to_dict(orient='records')}
         )
-
-        # Output summaries
-        print(classification_summary)
-        print(tolerance_summary)
-        print(empty_order_sum)
 
         # End of process
         log_errors(
@@ -102,7 +97,7 @@ def process_files(input_files: FileInput):
             context="process_files",
             level=LevelType.INFO.value
         )
-
+        return classification_summary,tolerance_summary,transaction_summary,merged_df
     except pd.errors.EmptyDataError as ede:
         log_errors(
             ede,
