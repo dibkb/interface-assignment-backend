@@ -1,4 +1,4 @@
-name: CD
+name: Continuous Deployment
 
 on:
   push:
@@ -23,36 +23,42 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and Push Docker image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           context: .
           file: ./Dockerfile
           push: true
           tags: dibkb/interface-assignment-server:latest
 
-      - name: Verify Pushed Image
-        run: docker pull dibkb/interface-assignment-server:latest
-
-      - name: SSH into EC2 and deploy
-        uses: appleboy/ssh-action@v0.1.10
+      - name: Copy docker-compose.yml to EC2
+        uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
-          port: 22
+          source: "docker-compose.yml"
+          target: "~/app"
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
           script: |
-            # Ensure Docker Compose is installed and up to date
-            sudo curl -L "https://github.com/docker/compose/releases/download/$(sudo curl -s https://api.github.com/repos/docker/compose/releases/latest | grep -Po '"tag_name": "\K.*\d')" -o /usr/local/bin/docker-compose
+            # Update Docker Compose if necessary
+            sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
             sudo chmod +x /usr/local/bin/docker-compose
 
-            # Pull the latest image from Docker Hub
+            # Navigate to the app directory
+            cd ~/app
+
+            # Pull the latest image
             sudo docker pull dibkb/interface-assignment-server:latest
 
-            # Stop and remove the old container if it exists
-            sudo docker stop interface-assignment-server || true
-            sudo docker rm interface-assignment-server || true
+            # Start or restart the services
+            sudo docker-compose down
+            sudo docker-compose up -d
 
-            docker-compose -f docker-compose.yml up -d
-
-            # Clean up unused volumes
-            sudo docker system prune -f --volumes
+            # Clean up
+            sudo docker system prune -af --volumes

@@ -2,11 +2,9 @@ version: "3.8"
 
 services:
   web:
-    build: .
+    image: dibkb/interface-assignment-server:latest
     ports:
       - "8000:8000" # Expose port 8000 on the host
-    volumes:
-      - ./app:/server/app # Mount the app directory to the container
     environment:
       - DATABASE_URL=postgresql://dibkb:password@db:5432/interface-etl
     depends_on:
