@@ -49,10 +49,7 @@ Ensure you have the following installed on your machine:
 4. **Setup the frontend**
 
    Once the backend setup is complete, navigate to the frontend and setup the NextJs app locally:
-
-   ```bash
-   https://github.com/dibkb/interface-frontend
-   ```
+   - [https://github.com/dibkb/interface-frontend](https://github.com/dibkb/interface-frontend)
 
 
 
