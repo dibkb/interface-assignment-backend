@@ -1,5 +1,6 @@
 # Import necessary modules from FastAPI, SQLAlchemy, and other utilities
 from fastapi import FastAPI, File, UploadFile, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from fastapi.responses import JSONResponse
@@ -7,7 +8,8 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy import desc
 from pydantic import ValidationError
 import pandas as pd
-
+import io
+import json
 # Import custom modules and functions
 from .pydantic.model import FileInput 
 from .etl.process import process_files
@@ -60,11 +62,11 @@ async def process_uploaded_files(request: Request, mtr_file: UploadFile = File(.
         # Using context manager to handle DB session
         with get_db_context() as db:
             # define filename
-            FILENAME =  mtr_file.filename + payment_file.filename
+            FILENAME =  clean_str(mtr_file.filename + payment_file.filename)
+            print(FILENAME)
             # Check if the merged_df table exists and has any rows
             existing_file = pd.read_sql(select_all_from_table(FILENAME), con=db.connection())
             
-
             if not existing_file.empty:
                 # log that retrived from database.
                 log_errors(
@@ -105,7 +107,7 @@ async def process_uploaded_files(request: Request, mtr_file: UploadFile = File(.
             )
 
             # Save the DataFrame to the database
-            merged_df.to_sql(FILENAME, con=db.connection(), if_exists='replace', index=False)
+            merged_df.to_sql(clean_str(FILENAME), con=db.connection(), if_exists='replace', index=False)
 
             log_errors(
                 error="Saving file to the database",
@@ -115,8 +117,19 @@ async def process_uploaded_files(request: Request, mtr_file: UploadFile = File(.
                     "filename" : FILENAME
                 }
             )
+            combined_data = {
+                "merged_df": json.loads(merged_df.to_json(orient='records')),
+                "classification_summary": json.loads(classification_summary.to_json(orient='records')),
+                "tolerance_summary": json.loads(tolerance_summary.to_json(orient='records')),
+                "transaction_summary": json.loads(transaction_summary.to_json(orient='records'))
+            }
 
-            return JSONResponse({"processed_file": merged_df.to_json()}, status_code=200)
+            # Convert combined JSON object to JSON string and then to BytesIO buffer
+            json_str = json.dumps(combined_data)
+            buffer = io.BytesIO(json_str.encode('utf-8'))
+
+            # Return the buffer as a StreamingResponse
+            return StreamingResponse(buffer, media_type="application/json")
 
     except ValidationError as v:
         error_details = log_errors(v, context="Validation Error")
@@ -126,3 +139,17 @@ async def process_uploaded_files(request: Request, mtr_file: UploadFile = File(.
         error_details = log_errors(e, context="File Processing Error")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {error_details['message']}")
 
+# @app.get("/get-processed-files")
+# async def get_processed_files():
+#     with get_db_context() as db:
+#         # define filename
+#         FILENAME =  "SELECT * FROM 'mtrhiringsheetxlsxpaymentreporthiringcsv'"
+#         # Check if the merged_df table exists and has any rows
+#         existing_file = pd.read_sql(FILENAME, con=db.connection())
+#         print(existing_file)
+#         return ""
+    
+def clean_str(string):
+  lowercase_string = string.lower()
+  filtered_string = ''.join(char for char in lowercase_string if char.isalpha())
+  return filtered_string

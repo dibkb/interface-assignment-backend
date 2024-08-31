@@ -126,3 +126,4 @@ def process_files(input_files: FileInput):
             level=LevelType.ERROR.value
         )
         raise
+
