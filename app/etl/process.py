@@ -7,6 +7,7 @@ from ..pydantic.model import FileInput
 from ..logs.logger import log_errors
 from ..db.schema.error_log import LevelType
 
+
 def process_files(input_files: FileInput):
     try:
         # Start of the process
@@ -14,9 +15,9 @@ def process_files(input_files: FileInput):
             "Starting the file processing pipeline",
             context="process_files",
             level=LevelType.INFO.value,
-            additional_info={"input_file_name":input_files.dict()}
+            additional_info={"input_file_name": input_files.dict()}
         )
-        
+
         # Load data frames and preprocess
         mtr_df = preprocess_dataframe(read_file(input_files.mtr_file))
         payment_df = preprocess_dataframe(read_file(input_files.payment_file))
@@ -24,8 +25,9 @@ def process_files(input_files: FileInput):
             "Loaded and preprocessed MTR and Payment dataframes",
             context="process_files",
             level=LevelType.INFO.value,
-            additional_info={"mtr_df_shape": mtr_df.shape, "payment_df_shape": payment_df.shape}
-        )
+            additional_info={
+                "mtr_df_shape": mtr_df.shape,
+                "payment_df_shape": payment_df.shape})
 
         # Transform pandas data frames
         mtr_df = transform_mtr_df(mtr_df)
@@ -34,8 +36,9 @@ def process_files(input_files: FileInput):
             "Transformed MTR and Payment dataframes",
             context="process_files",
             level=LevelType.INFO.value,
-            additional_info={"mtr_df_columns": mtr_df.columns.to_list(), "payment_df_columns": payment_df.columns.to_list()}
-        )
+            additional_info={
+                "mtr_df_columns": mtr_df.columns.to_list(),
+                "payment_df_columns": payment_df.columns.to_list()})
 
         # Merge data frames
         merged_df = merge_dataframes(mtr_df, payment_df)
@@ -45,7 +48,7 @@ def process_files(input_files: FileInput):
             level=LevelType.INFO.value,
             additional_info={"merged_df_shape": merged_df.shape}
         )
-        
+
         # Mark dataframe
         merged_df = mark_df(merged_df)
         log_errors(
@@ -69,18 +72,21 @@ def process_files(input_files: FileInput):
             "Generated classification summary",
             context="process_files",
             level=LevelType.INFO.value,
-            additional_info={"classification_summary": classification_summary.to_dict(orient='records')}
-        )
+            additional_info={
+                "classification_summary": classification_summary.to_dict(
+                    orient='records')})
 
         # Generate tolerance summary
-        tolerance_summary = merged_df['ToleranceCheck'].value_counts().reset_index()
+        tolerance_summary = merged_df['ToleranceCheck'].value_counts(
+        ).reset_index()
         tolerance_summary.columns = ['ToleranceCheck', 'Count']
         log_errors(
             "Generated tolerance summary",
             context="process_files",
             level=LevelType.INFO.value,
-            additional_info={"tolerance_summary": tolerance_summary.to_dict(orient='records')}
-        )
+            additional_info={
+                "tolerance_summary": tolerance_summary.to_dict(
+                    orient='records')})
 
         # Generate empty order summary
         transaction_summary = empty_order_summary(merged_df)
@@ -88,8 +94,9 @@ def process_files(input_files: FileInput):
             "Generated empty order summary",
             context="process_files",
             level=LevelType.INFO.value,
-            additional_info={"empty_order_summary": transaction_summary.to_dict(orient='records')}
-        )
+            additional_info={
+                "empty_order_summary": transaction_summary.to_dict(
+                    orient='records')})
 
         # End of process
         log_errors(
@@ -97,20 +104,18 @@ def process_files(input_files: FileInput):
             context="process_files",
             level=LevelType.INFO.value
         )
-        return classification_summary,tolerance_summary,transaction_summary,merged_df
+        return classification_summary, tolerance_summary, transaction_summary, merged_df
     except pd.errors.EmptyDataError as ede:
         log_errors(
             ede,
             context="EmptyDataError in process_files: Possibly an empty input file.",
-            level=LevelType.ERROR.value
-        )
+            level=LevelType.ERROR.value)
         raise
     except ValueError as ve:
         log_errors(
             ve,
             context="ValueError in process_files: Likely due to unsupported file format or incorrect data processing.",
-            level=LevelType.ERROR.value
-        )
+            level=LevelType.ERROR.value)
         raise
     except KeyError as ke:
         log_errors(
@@ -126,4 +131,3 @@ def process_files(input_files: FileInput):
             level=LevelType.ERROR.value
         )
         raise
-

@@ -11,12 +11,14 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
 
 @contextmanager
 def get_db_context():
@@ -25,6 +27,7 @@ def get_db_context():
         yield db
     finally:
         db.close()
+
 
 def get_db_from_request(request: Request) -> Session:
     return request.state.db if hasattr(request.state, 'db') else next(get_db())

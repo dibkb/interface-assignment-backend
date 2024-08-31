@@ -2,6 +2,7 @@ import pandas as pd
 from ...logs.logger import log_errors
 from ...db.schema.error_log import LevelType
 
+
 def transform_mtr_df(df: pd.DataFrame):
     try:
         # Start logging
@@ -12,10 +13,8 @@ def transform_mtr_df(df: pd.DataFrame):
             additional_info={
                 "initial_shape": df.shape,
                 "initial_columns": df.columns.tolist(),
-                "initial_transaction_types": df['TransactionType'].value_counts().to_dict()
-            }
-        )
-    
+                "initial_transaction_types": df['TransactionType'].value_counts().to_dict()})
+
         # Filtering out 'Cancel' transactions
         df = df[df['TransactionType'] != 'Cancel']
         log_errors(
@@ -27,10 +26,12 @@ def transform_mtr_df(df: pd.DataFrame):
 
         # Transforming 'Refund' and 'FreeReplacement' to 'Return'
         refund_count = sum(df["TransactionType"] == "Refund")
-        free_replacement_count = sum(df["TransactionType"] == "FreeReplacement")
-        
+        free_replacement_count = sum(
+            df["TransactionType"] == "FreeReplacement")
+
         df.loc[df["TransactionType"] == "Refund", "TransactionType"] = "Return"
-        df.loc[df["TransactionType"] == "FreeReplacement", "TransactionType"] = "Return"
+        df.loc[df["TransactionType"] == "FreeReplacement",
+               "TransactionType"] = "Return"
 
         log_errors(
             error="Transformed 'Refund' and 'FreeReplacement' to 'Return'",
@@ -50,10 +51,8 @@ def transform_mtr_df(df: pd.DataFrame):
             additional_info={
                 "final_shape": df.shape,
                 "final_columns": df.columns.tolist(),
-                "final_transaction_types": df['TransactionType'].value_counts().to_dict()
-            }
-        )
-        
+                "final_transaction_types": df['TransactionType'].value_counts().to_dict()})
+
         return df
 
     except KeyError as k:
@@ -61,8 +60,8 @@ def transform_mtr_df(df: pd.DataFrame):
             error=str(k),
             context="KeyError in transform_mtr_df: Missing 'TransactionType' column",
             level=LevelType.ERROR.value,
-            additional_info={"available_columns": df.columns.tolist()}
-        )
+            additional_info={
+                "available_columns": df.columns.tolist()})
         raise
 
     except Exception as e:

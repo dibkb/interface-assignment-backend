@@ -2,6 +2,7 @@ import pandas as pd
 from ...logs.logger import log_errors
 from ...db.schema.error_log import LevelType
 
+
 def transform_payment_df(df: pd.DataFrame):
     try:
         # Log the start of the transformation process
@@ -11,7 +12,7 @@ def transform_payment_df(df: pd.DataFrame):
             level=LevelType.INFO.value,
             additional_info={"payment_df_columns": df.columns.to_list()}
         )
-        
+
         # Filter out 'Transfer' types and rename columns
         df = df[df['Type'] != 'Transfer']
         log_errors(
@@ -21,12 +22,14 @@ def transform_payment_df(df: pd.DataFrame):
             additional_info={"remaining_rows": df.shape[0]}
         )
 
-        df = df.rename(columns={'Type': 'PaymentType', 'Date/Time': 'PaymentDate'})
+        df = df.rename(
+            columns={
+                'Type': 'PaymentType',
+                'Date/Time': 'PaymentDate'})
         log_errors(
             "Renamed columns: 'Type' to 'PaymentType' and 'Date/Time' to 'PaymentDate'",
             context="transform_payment_df",
-            level=LevelType.INFO.value
-        )
+            level=LevelType.INFO.value)
 
         # Replace specific values in the 'PaymentType' column
         df['PaymentType'] = df['PaymentType'].replace({
@@ -60,17 +63,17 @@ def transform_payment_df(df: pd.DataFrame):
         )
 
         return df
-    
+
     except KeyError as k:
         # Log KeyError with detailed information
         log_errors(
             k,
             context="KeyError in transform_payment_df: Missing 'Type' or 'Date/Time' column",
             level=LevelType.ERROR.value,
-            additional_info={"payment_df_columns": df.columns.to_list()}
-        )
+            additional_info={
+                "payment_df_columns": df.columns.to_list()})
         raise
-    
+
     except Exception as e:
         # Log any other exceptions with detailed information
         log_errors(

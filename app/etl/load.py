@@ -4,15 +4,17 @@ from ..logs.logger import log_errors
 from ..db.schema.error_log import LevelType
 import io
 
+
 def read_file(file: File):
     try:
         log_errors(
             error="Starting file read operation",
             context="Initializing file read process",
             level=LevelType.INFO.value,
-            additional_info={"file_name": file.filename, "file_size": file.size}
-        )
-        
+            additional_info={
+                "file_name": file.filename,
+                "file_size": file.size})
+
         content = file.file.read()
         if file.filename.endswith('.csv'):
             df = pd.read_csv(io.StringIO(content.decode('utf-8')))
@@ -26,15 +28,18 @@ def read_file(file: File):
                 additional_info={"file_name": file.filename}
             )
             raise ValueError(f"Unsupported file format: {file.filename}")
-        
+
         log_errors(
             error="File read successful",
             context="Completed file read process",
             level=LevelType.INFO.value,
-            additional_info={"file_name": file.filename, "rows": len(df), "columns": len(df.columns)}
-        )
+            additional_info={
+                "file_name": file.filename,
+                "rows": len(df),
+                "columns": len(
+                    df.columns)})
         return df
-    
+
     except Exception as e:
         log_errors(
             error=str(e),
@@ -44,6 +49,7 @@ def read_file(file: File):
         )
         raise
 
+
 def preprocess_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     try:
         log_errors(
@@ -52,10 +58,10 @@ def preprocess_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             level=LevelType.INFO.value,
             additional_info={"initial_columns": list(df.columns)}
         )
-        
+
         df.columns = df.columns.str.title().str.replace(' ', '')
         df = df.map(lambda x: x.strip() if isinstance(x, str) else x)
-        
+
         log_errors(
             error="Dataframe preprocessing completed",
             context="Finished dataframe preprocessing",
@@ -63,7 +69,7 @@ def preprocess_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             additional_info={"processed_columns": list(df.columns)}
         )
         return df
-    
+
     except Exception as e:
         log_errors(
             error=str(e),

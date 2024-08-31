@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from fastapi import UploadFile
 
+
 class FileInput(BaseModel):
     mtr_file: UploadFile
     payment_file: UploadFile
@@ -20,14 +21,17 @@ class FileInput(BaseModel):
                 "size": self.payment_file.size,
             }
         }
-    
+
+
 class SummaryItem(BaseModel):
     category: str
     count: int
 
+
 class EmptyOrderItem(BaseModel):
     Description: str
     NetAmount: float
+
 
 class ProcessResult(BaseModel):
     classification_summary: List[SummaryItem]
