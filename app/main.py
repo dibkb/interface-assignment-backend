@@ -18,13 +18,16 @@ from .db.database import get_db_context, get_db_from_request
 # Set up FastAPI app
 app = FastAPI()
 
-# Enable CORS for specified origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000","https://interface-assignment-next.dibkb.xyz"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://interface-assignment-next.dibkb.xyz"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # init db...
