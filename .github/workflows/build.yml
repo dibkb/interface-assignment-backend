@@ -25,8 +25,10 @@ jobs:
 
       - name: Run autopep8
         run: |
+          pip install autopep8
           autopep8 --in-place --aggressive --aggressive -r .
 
       - name: Lint code with flake8
         run: |
+          pip install flake8
           flake8 .
