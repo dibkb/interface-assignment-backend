@@ -33,6 +33,11 @@ app.add_middleware(
 # init db...
 init_db()
 
+@app.api_route("/test-post",methods=["POST"])
+async def test_post():
+    return JSONResponse(content=jsonable_encoder({
+        "response" :"test endpoint working"
+    }), status_code=200)
 
 @app.api_route("/logs", methods=["GET"])
 async def show_logs(request: Request, page: int = 1, limit: int = 20):
