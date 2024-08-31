@@ -25,7 +25,7 @@ app.add_middleware(
         "https://interface-assignment-next.dibkb.xyz"
     ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["POST", "GET", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["*"]
 )
