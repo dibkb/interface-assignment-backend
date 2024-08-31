@@ -55,12 +55,12 @@ async def show_logs(request: Request, page: int = 1, limit: int = 20):
         }), status_code=200)
 
 
-@app.get("/")
+@app.api_route("/",methods=["GET"])
 async def root():
     return {"message": LevelType.INFO.value}
 
 
-@app.post("/process-files")
+@app.api_route("/process-files",methods=["POST"])
 async def process_uploaded_files(request: Request, mtr_file: UploadFile = File(...), payment_file: UploadFile = File(...)):
     try:
         # Using context manager to handle DB session
