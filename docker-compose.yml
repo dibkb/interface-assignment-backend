@@ -4,13 +4,16 @@ services:
   web:
     build: .
     ports:
-      - 8000:8000
+      - "8000:8000" # Expose port 8000 on the host
     volumes:
-      - ./app:/server/app
+      - ./app:/server/app # Mount the app directory to the container
     environment:
       - DATABASE_URL=postgresql://dibkb:password@db:5432/interface-etl
     depends_on:
       - db
+    restart: always # Restart the service automatically if it fails
+    networks:
+      - webnet
 
   db:
     image: postgres:13
@@ -21,7 +24,13 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=interface-etl
     ports:
-      - 5432:5432
+      - "5432:5432" # Expose port 5432 on the host
+    networks:
+      - webnet
 
 volumes:
   postgres_data:
+
+networks:
+  webnet:
+    driver: bridge
